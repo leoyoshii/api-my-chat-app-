@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "prepare": "husky install",
     "pre-commit": "lint-staged",
+    "prisma:generate": "npx prisma generate",
     "cz": "git-cz"
   },
   "dependencies": {
