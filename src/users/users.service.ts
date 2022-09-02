@@ -1,11 +1,23 @@
 import {Injectable} from '@nestjs/common'
+import {Users} from '@prisma/client'
+import * as bcrypt from 'bcrypt'
+
 import {CreateUserDto} from './dto/create-user.dto'
 import {UpdateUserDto} from './dto/update-user.dto'
+import {PrismaService} from '../services/prisma/prisma.service'
 
 @Injectable()
 export class UsersService {
-  create(createUserDto: CreateUserDto) {
-    return 'This action adds a new user'
+  constructor(private prisma: PrismaService) {}
+  async create({password, confirmPassword, ...rest}: CreateUserDto): Promise<Users> {
+    if (password !== confirmPassword) {
+      throw new Error('password and confirmPassword is not the same')
+    }
+
+    const genSalt = await bcrypt.genSalt()
+    const hashedPassword = await bcrypt.hash(password, genSalt)
+
+    return this.prisma.users.create({data: {password: hashedPassword, ...rest}})
   }
 
   findAll() {
