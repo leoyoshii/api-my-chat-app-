@@ -1,38 +1,47 @@
 import {Injectable} from '@nestjs/common'
 import {Users} from '@prisma/client'
-import * as bcrypt from 'bcrypt'
-
 import {CreateUserDto} from './dto/create-user.dto'
 import {UpdateUserDto} from './dto/update-user.dto'
 import {PrismaService} from '../services/prisma/prisma.service'
+import {PasswordService} from '../services/password/password.service'
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private passwordService: PasswordService) {}
   async create({password, confirmPassword, ...rest}: CreateUserDto): Promise<Users> {
     if (password !== confirmPassword) {
       throw new Error('password and confirmPassword is not the same')
     }
 
-    const genSalt = await bcrypt.genSalt()
-    const hashedPassword = await bcrypt.hash(password, genSalt)
+    const hashedPassword = await this.passwordService.hashPassword(password)
 
     return this.prisma.users.create({data: {password: hashedPassword, ...rest}})
   }
 
-  findAll() {
-    return `This action returns all users`
+  async findAll() {
+    return this.prisma.users.findMany()
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`
+  async findOne(id: string) {
+    return this.prisma.users.findUnique({where: {id}})
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`
+  async update(id: string, data: UpdateUserDto) {
+    return this.prisma.users.update({
+      where: {id},
+      data,
+    })
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`
+  async remove(id: string) {
+    const user = await this.prisma.users.findUnique({where: {id}})
+
+    user.deletedAt ? (user.deletedAt = null) : (user.deletedAt = new Date())
+
+    //TODO: implement Soft delete index in DB and Prisma Middleware
+    return this.prisma.users.update({
+      where: {id},
+      data: user,
+    })
   }
 }
