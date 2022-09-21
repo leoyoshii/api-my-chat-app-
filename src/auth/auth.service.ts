@@ -1,4 +1,6 @@
-import {HttpException, HttpStatus, Injectable, UnauthorizedException} from '@nestjs/common'
+import {Injectable, UnauthorizedException} from '@nestjs/common'
+import {JwtService} from '@nestjs/jwt'
+import {Users} from '@prisma/client'
 import {PasswordService} from '../services/password/password.service'
 import {UsersService} from '../users/users.service'
 import {ValidateUserDto} from './dtos/validate-user.dto'
@@ -8,6 +10,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly passwordService: PasswordService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async validateUser(userDetails: ValidateUserDto) {
@@ -23,5 +26,13 @@ export class AuthService {
     )
 
     return isPasswordValid ? user : null
+  }
+
+  async login(user: Users) {
+    const payload = {email: user.email, sub: user.id}
+
+    return {
+      access_token: this.jwtService.sign(payload),
+    }
   }
 }
